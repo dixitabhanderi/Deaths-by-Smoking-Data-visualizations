@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <style>
+    body {
+      font-family:"avenir next", Arial, sans-serif;
+      font-size: 25px;
+      color: #696969;
+      background-color: #f0f5f5;
+    }
+    /*.bar { fill: steelblue; }*/
+    .bar:hover {
+      fill: lightseagreen;
+      transition: fill 0.15s;
+    }
+
+    #play-button {
+      display: block;
+      position: absolute;
+      top: 16.67em;
+      left: 150px;
+      background: #f08080;
+      padding-right: 26px;
+      border-radius: 3px;
+      border: none;
+      color: white;
+      margin: 0;
+      margin-left: 33em;
+      padding: 0 12px;
+      width: 100px;
+      cursor: pointer;
+      height: 50px;
+      font-size: 20px;
+      margin-block-start: 0.67em;
+      margin-block-end: 0.67em;
+    }
+
+    #play-button:hover {
+      background-color: #696969;
+    }
+
+    .ticks {
+      font-size: 10px;
+    }
+
+    .track,
+    .track-inset,
+    .track-overlay {
+      stroke-linecap: round;
+    }
+
+    .track {
+      stroke: #000;
+      stroke-opacity: 0.3;
+      stroke-width: 10px;
+    }
+
+    .track-inset {
+      stroke: #dcdcdc;
+      stroke-width: 8px;
+    }
+
+    .track-overlay {
+      pointer-events: stroke;
+      stroke-width: 50px;
+      stroke: transparent;
+      cursor: crosshair;
+    }
+
+    .handle {
+      fill: #fff;
+      stroke: #000;
+      stroke-opacity: 0.5;
+      stroke-width: 1.25px;
+    }
+
+    .toolTip {
+      position: absolute;
+      pointer-events: none;
+      display: none;
+      min-width: 50px;
+      height: auto;
+      background: none repeat scroll 0 0 white ;
+      padding: 9px 14px 6px 14px;
+      border-radius: 2px;
+      text-align: center;
+      line-height: 1.3;
+      color: lightskyblue;
+      box-shadow: 0px 3px 9px rgba(0, 0, 0, .15);
+    }
+    .toolTip:after {
+      content: "";
+      width: 0;
+      height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-top: 12px solid white;
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      margin-left: -12px;
+    }
+    .toolTip span {
+      font-weight: 500;
+      color: #081F2C;
+    }
+    text {
+      font-size: 20px;
+    }
+  </style>
+</head>
+
+<body>
+<h1 align=center> Death rates from smoking by age, <span id="yearchange">1990</span><h4 align=center>Death rates are measured as the number of early deaths due to smoking per 100,000 individuals in a given
+  demographic group.</h4></h1>
+<div id="vis">
+  <button align=center id="play-button">Play</button>
+</div>
+<script>
+
+  var formatDateIntoYear = d3.timeFormat("%Y");
+  var formatDate = d3.timeFormat("%Y");
+  var parseDate = d3.timeParse("%y");
+
+  var startDate = new Date("1991"),
+          endDate = new Date("2017");
+
+  // set the dimensions and margins of the graph
+  var margin = {top: 0, right: 20, bottom: 30, left: 40},
+          width = 1500 - margin.left - margin.right,
+          height = 200 - margin.top - margin.bottom;
+
+  var svg2 = d3.select("#vis")
+          .append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom);
+
+  // set the dimensions and margins of the graph
+  var margin = {top: 20, right: 20, bottom: 30, left: 200},
+          width = 1500 - margin.left - margin.right,
+          height = 500 - margin.top - margin.bottom;
+  // set the ranges
+  var y = d3.scaleBand()
+          .range([height, 0])
+          .padding(0.1);
+
+  var x = d3.scaleLinear()
+          .range([0, width]);
+
+  // append the svg object to the body of the page
+  // append a 'group' element to 'svg'
+  // moves the 'group' element to the top left margin
+  var svg = d3.select("body").append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+          .attr("transform",
+                  "translate(" + margin.left + "," + margin.top + ")");
+
+  // Scale the range of the data in the domains
+  x.domain([0,243000])
+   y.domain(["15-49 years old", "All Ages", "50-69 years old" ,"70+ years old"]);
+
+  // add the x Axis
+  svg.append("g")
+          .attr("transform", "translate(0," + height + ")")
+          .call(d3.axisBottom(x));
+  // add the y Axis
+  svg.append("g")
+          .call(d3.axisLeft(y));
+
+  // Define the div for the tooltip
+  var div = d3.select("body").append("div")
+          .attr("class", "tooltip")
+          .style("opacity", 0);
+  var tooltip = d3.select("body").append("div").attr("class", "toolTip");
+  var color = d3.scaleOrdinal().range(["#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
+  ////////// slider //////////
+
+  var moving = false;
+  var currentValue = 0;
+  var targetValue = width;
+
+  var playButton = d3.select("#play-button");
+
+  var x = d3.scaleTime()
+          .domain([startDate, endDate])
+          .range([0, targetValue])
+          .clamp(true);
+
+  var slider = svg2.append("g")
+          .attr("class", "slider")
+          .attr("transform", "translate(" + margin.left + "," + height/5 + ")");
+
+  slider.append("line")
+          .attr("class", "track")
+          .attr("x1", x.range()[0])
+          .attr("x2", x.range()[1])
+          .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
+          .attr("class", "track-inset")
+          .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
+          .attr("class", "track-overlay")
+          .call(d3.drag()
+                  .on("start.interrupt", function() { slider.interrupt(); })
+                  .on("start drag", function() {
+                    currentValue = d3.event.x;
+                    update(x.invert(currentValue));
+                  })
+          );
+
+  slider.insert("g", ".track-overlay")
+          .attr("class", "ticks")
+          .attr("transform", "translate(0," + 18 + ")")
+          .selectAll("text")
+          .data(x.ticks(10))
+          .enter()
+          .append("text")
+          .attr("x", x)
+          .attr("y", 10)
+          .attr("text-anchor", "middle")
+          .text(function(d) { return formatDateIntoYear(d); });
+
+  var handle = slider.insert("circle", ".track-overlay")
+          .attr("class", "handle")
+          .attr("r", 9);
+
+  var label = slider.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .text(formatDate(startDate))
+          .attr("transform", "translate(0," + (-25) + ")")
+
+
+  ////////// plot //////////
+
+  var dataset;
+
+  var plot = svg.append("g")
+          .attr("class", "plot")
+          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  d3.csv("data.csv", function(data) {
+    dataset = data;
+    // var newData = data.filter(function(d) {
+    //   return d.year == label.text() ;
+    // })
+    var newda = prepareData(data);
+
+    // drawPlot(dataset);
+    // append the rectangles for the bar chart
+    var bars = svg.selectAll(".bar");
+    bars.data(newda)
+            .enter()
+            .append("rect")
+            // .transition()
+            // .duration(500)
+            // .delay(function(d,i){return i*10})
+            .attr("class", "bar")
+            .attr("x", function(d) { return x(parseFloat(d.sales/190)); })
+            .attr("width", function(d) {return parseFloat(d.sales/190); } )
+            .attr("y", function(d) { return y(d.salesperson); })
+            .attr("height", y.bandwidth())
+            .on("mousemove", function(d){
+              // Replace hard coded vals (50, 90) with 50% of the tooltip wioth and height + a top buffer
+              tooltip
+                      .style("left", d3.event.pageX - 50 + "px")
+                      .style("top", d3.event.pageY - 90 + "px")
+                      .style("display", "inline-block")
+                      .html("<span>"+(d.salesperson) + " " + (d.sales) + "<br> deaths for year "+d.year+"</span>");
+            })
+            .on("mouseout", function(d){ tooltip.style("display", "none");})
+            .attr("fill", function(d, i) {
+              return color(i);
+            })
+            .text(function(d, i) {
+              return data[i].label;
+            });
+    d3.select("#yearchange").text(label.text() );
+
+
+    playButton
+            .on("click", function() {
+              var button = d3.select(this);
+              if (button.text() == "Pause") {
+                moving = false;
+                clearInterval(timer);
+                // timer = 0;
+                button.text("Play");
+              } else {
+                moving = true;
+                timer = setInterval(step, 100);
+                button.text("Pause");
+              }
+              console.log("Slider moving: " + moving);
+            })
+  })
+  function prepareData(data) {
+    var newda = [];
+    var temp = {"salesperson": "70+ years old","sales":data[0].more70,"year":data[0].year};
+    newda.push(temp);
+    temp = {"salesperson": "50-69 years old","sales":data[0].bet50_69,"year":data[0].year};
+    newda.push(temp);
+    temp = {"salesperson": "All Ages","sales":data[0].all,"year":data[0].year};
+    newda.push(temp);
+    temp = {"salesperson": "15-49 years old","sales":data[0].bet15_49,"year":data[0].year};
+    newda.push(temp);
+    // temp = {"salesperson": "5-14 years old","sales":data[0].bet5_14,"year":data[0].year};
+    // newda.push(temp);
+    // temp = {"salesperson": "Under-5s","sales":data[0].under5,"year":data[0].year};
+    // newda.push(temp);
+    return newda;
+  }
+
+  function step() {
+    update(x.invert(currentValue));
+    currentValue = currentValue + (targetValue/151);
+    if (currentValue > targetValue) {
+      moving = false;
+      currentValue = 0;
+      clearInterval(timer);
+      // timer = 0;
+      playButton.text("Play");
+      console.log("Slider moving: " + moving);
+    }
+  }
+
+  function drawPlot(data) {
+    var newda = prepareData(data);
+    // append the rectangles for the bar chart
+
+    svg.selectAll(".bar")
+            .data(newda)
+            .transition()
+            // .duration(100)
+            // .delay(function(d,i){return i*5})
+            .attr("class", "bar")
+            .attr("x", function(d) { return x(parseFloat(d.sales/190)); })
+            .attr("width", function(d) { console.log(d.sales/190); return (parseFloat(d.sales/190)); } )
+            // .attr("y", function(d) { return y(d.salesperson); })
+            // .attr("height", y.bandwidth());
+    d3.select("#yearchange").text(label.text() );
+           // bars.exit()
+          // .remove();
+  }
+
+  function update(h) {
+    // update position and text of label according to slider scale
+    handle.attr("cx", x(h));
+    label
+            .attr("x", x(h))
+            .text(formatDate(h));
+
+    // filter data set and redraw plot
+    var newData = dataset.filter(function(d) {
+      return d.year == label.text() ;
+    })
+    drawPlot(newData);
+  }
+</script>
+  <br>
+  <b align=center>To know more about country wise data for (Age>70) category, Please click here:
+  <a href="i.html"> Country wise visualization</a></b><br>
+
+</body>

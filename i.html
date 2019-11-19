@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+    <style>
+        body {
+            font-family:"avenir next", Arial, sans-serif;
+            font-size: 20px;
+            color: #696969;
+            background-color: #f0f5f5;
+        }
+
+        text {
+            font-size: 20px;
+        }
+        /*.bar { fill: steelblue; }*/
+        .bar:hover {
+            fill: #34d0eb;
+            transition: fill 0.15s;
+        }
+
+        .rectangle{
+            fill: lightskyblue;
+        }
+
+        .rectangle:hover {
+            fill: rebeccapurple;
+        }
+        .axis {
+            font: 14px Calibri;
+        }
+
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+    </style>
+</head>
+<body>
+<br><br>
+<h1 align=center> Country wise Death Rate Change Over The Years</h1><br>
+<h3 align=center>(Data filtered out for a category of people who are older than 70 years) </h3><br>
+<h4 >&emsp; &emsp; &emsp; In earlier visualizations, we saw that the death rate is highest in the category of people where age is greater than 70 years.<br>
+    &emsp; &emsp; &emsp; This information leads us to see more detailed visualization, where we have two filters:<br><br>
+    &emsp; &emsp; &emsp; &emsp;  1. People having age > 70 years<br>
+    &emsp; &emsp; &emsp; &emsp; 2. Country selected from a dropdown<br></h4>
+</body>
+<div id="drop" align=center></div>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script>
+    var margin22 = {top: 100, right: 180, bottom: 80, left: 180},
+        width22 = 960 - margin22.left - margin22.right+800,
+        height22 = 500 - margin22.top - margin22.bottom;
+
+    var svg = d3.select("body").append("svg")
+        .attr("width", width22 + margin22.left + margin22.right)
+        .attr("height", height22 + margin22.top + margin22.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin22.left + "," + margin22.top + ")");
+
+    d3.tsv("data.tsv", function(error, data){
+
+        var data = data.filter(function(d){return d.Year !== '2012';});
+
+        var elements = Object.keys(data[0])
+            .filter(function(d){
+                return ((d!=="year"));
+            });
+        var selection = elements[0];
+
+        var y = d3.scale.linear()
+            .domain([0, d3.max(data, function(d){
+                return +d[selection];
+            })])
+            .range([height22, 0]);
+
+        var x = d3.scale.ordinal()
+            .domain(data.map(function(d){ return d.year;}))
+            .rangeBands([0, width22-20]);
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom");
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left");
+
+
+        svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height22 + ")")
+            .call(xAxis)
+            .selectAll("text")
+
+        svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis);
+
+
+        svg.selectAll("rectangle")
+            .data(data)
+            .enter()
+            .append("rect")
+
+            .attr("class","rectangle")
+            .attr("width", (width22/data.length)-21)
+            .attr("height", function(d){
+                return height22 - y(+d[selection]);
+            })
+
+            .attr("x", function(d, i){
+                return ((width22 / data.length) * i );
+            })
+            .attr("y", function(d){
+                return y(+d[selection])-1;
+            })
+
+            .append("title")
+            .text(function(d){
+                return d.year + " : " + d[selection];
+            })
+        svg.append("text")
+            .text("No of deaths")
+            .attr("transform",'translate(-160,140)')
+
+        svg.append("text")
+            .text("Year")
+            .attr("transform",'translate(650,390)')
+        var selector = d3.select("#drop")
+            .append("select")
+            .attr("id","dropdown")
+
+            .on("change", function(d){
+                selection = document.getElementById("dropdown");
+
+                y.domain([0, d3.max(data, function(d){
+                    return +d[selection.value];})]);
+
+                yAxis.scale(y);
+               // yAxis.title("Number of deaths")
+
+                d3.selectAll(".rectangle")
+                    .transition()
+                    .attr("height", function(d){
+                        return height22 - y(+d[selection.value]);
+                    })
+                    .attr("x", function(d, i){
+                        return (width22 / data.length) * i ;
+                    })
+                    .attr("y", function(d){
+                        return y(+d[selection.value]);
+                    })
+                    .ease("linear")
+                    .select("title")
+                    .text(function(d){
+                        return d.year + " : " + d[selection.value];
+                    });
+
+
+                d3.selectAll("g.y.axis")
+                    .transition()
+                    .call(yAxis);
+
+                });
+            selector.selectAll("option")
+            .data(elements)
+            .enter().append("option")
+            .attr("value", function(d){
+                return d;
+            })
+            .text(function(d){
+                return d;
+            })
+    });
+
+</script>
+</body>
