@@ -14,26 +14,28 @@
       fill: lightseagreen;
       transition: fill 0.15s;
     }
+    svg{
+        display: block;
+        margin: auto;
+    }
 
     #play-button {
       display: block;
-      position: absolute;
-      top: 16.67em;
-      left: 150px;
+      margin: auto;
       background: #f08080;
       padding-right: 26px;
       border-radius: 3px;
       border: none;
       color: white;
-      margin: 0;
-      margin-left: 33em;
+      margin-top: 1em;
       padding: 0 12px;
       width: 100px;
       cursor: pointer;
       height: 50px;
       font-size: 20px;
-      margin-block-start: 0.67em;
-      margin-block-end: 0.67em;
+    }
+    #vis {
+      align: center;
     }
 
     #play-button:hover {
@@ -112,9 +114,12 @@
 </head>
 
 <body>
-<h1 align=center> Death rates from smoking by age, <span id="yearchange">1990</span><h4 align=center>Death rates are measured as the number of early deaths due to smoking per 100,000 individuals in a given
-  demographic group.</h4></h1>
-<div id="vis">
+<h2 align=center> Death rates from smoking by age, <span id="yearchange">1990</span><h4 align=center>Death rates are measured as the number of early deaths due to smoking per 100,000 individuals in a given
+  demographic group.</h4></h2>
+<div align=center id="vis">
+  
+</div>
+<div>
   <button align=center id="play-button">Play</button>
 </div>
 <script>
@@ -128,8 +133,8 @@
 
   // set the dimensions and margins of the graph
   var margin = {top: 0, right: 20, bottom: 30, left: 40},
-          width = 1500 - margin.left - margin.right,
-          height = 200 - margin.top - margin.bottom;
+          width = 1200 - margin.left - margin.right,
+          height = 100 - margin.top - margin.bottom;
 
   var svg2 = d3.select("#vis")
           .append("svg")
@@ -138,8 +143,8 @@
 
   // set the dimensions and margins of the graph
   var margin = {top: 20, right: 20, bottom: 30, left: 200},
-          width = 1500 - margin.left - margin.right,
-          height = 500 - margin.top - margin.bottom;
+          width = 1200 - margin.left - margin.right,
+          height = 350 - margin.top - margin.bottom;
   // set the ranges
   var y = d3.scaleBand()
           .range([height, 0])
@@ -165,6 +170,7 @@
   // add the x Axis
   svg.append("g")
           .attr("transform", "translate(0," + height + ")")
+          .attr("text", "gi")
           .call(d3.axisBottom(x));
   // add the y Axis
   svg.append("g")
@@ -257,8 +263,8 @@
             // .duration(500)
             // .delay(function(d,i){return i*10})
             .attr("class", "bar")
-            .attr("x", function(d) { return x(parseFloat(d.sales/190)); })
-            .attr("width", function(d) {return parseFloat(d.sales/190); } )
+            .attr("x", function(d) { return x(parseFloat(d.sales/250)); })
+            .attr("width", function(d) {return parseFloat(d.sales/250); } )
             .attr("y", function(d) { return y(d.salesperson); })
             .attr("height", y.bandwidth())
             .on("mousemove", function(d){
@@ -335,8 +341,8 @@
             // .duration(100)
             // .delay(function(d,i){return i*5})
             .attr("class", "bar")
-            .attr("x", function(d) { return x(parseFloat(d.sales/190)); })
-            .attr("width", function(d) { console.log(d.sales/190); return (parseFloat(d.sales/190)); } )
+            .attr("x", function(d) { return x(parseFloat(d.sales/250)); })
+            .attr("width", function(d) { console.log(d.sales/250); return (parseFloat(d.sales/250)); } )
             // .attr("y", function(d) { return y(d.salesperson); })
             // .attr("height", y.bandwidth());
     d3.select("#yearchange").text(label.text() );
@@ -358,8 +364,4 @@
     drawPlot(newData);
   }
 </script>
-  <br>
-  <b align=center>To know more about country wise data for (Age>70) category, Please click here:
-  <a href="i.html"> Country wise visualization</a></b><br>
-
 </body>
